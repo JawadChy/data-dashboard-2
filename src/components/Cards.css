@@ -1,0 +1,19 @@
+.Cards {
+    display: flex;
+    flex-direction: row;
+    gap: 10px 20px;
+    margin-left: 270px; /* Adjusted to align with the sidebar */
+    margin-top: 20px;
+    width: calc(100% - 270px); /* Adjusted to stretch to the right side */
+    justify-content: space-between;
+}
+
+
+.Card {
+    flex: 1;
+    width: calc((100% - 40px) / 4);
+    box-shadow: 0 15px 25px hsla(0,2%,50%,.2);
+    border-radius: 24px;
+    backdrop-filter: blur(2px);
+    background-color: hsla(0,0%,100%,.1);
+}
