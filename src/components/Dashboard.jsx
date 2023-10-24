@@ -1,32 +1,117 @@
 import './Dashboard.css';
+import Cards from './Cards';
 import { useState, useEffect } from 'react';
+import { getAQIStatus } from './utils';
 
-function Dashboard() {
-    // Sample static data
-    const [data, setData] = useState([
-        { id: 1, name: 'New York', aqi: 42, temperature: 12, pollutant: 'PM2.5', date: '2023-10-20' },
-        { id: 2, name: 'Los Angeles', aqi: 58, temperature: 22, pollutant: 'Ozone', date: '2023-10-19' },
-        // ... more data items
-    ]);
+const ACCESS_KEY = import.meta.env.VITE_APP_ACCESS_KEY;
+const NY_LAT = 40.7128;
+const NY_LON = -74.0060;
+
+// Calculate dates for the last 30 days
+const endDate = Math.floor(Date.now() / 1000); // Current date in UNIX timestamp
+const startDate = endDate - (30 * 24 * 60 * 60); // 30 days ago in UNIX timestamp
+
+const API_ENDPOINT = `http://api.openweathermap.org/data/2.5/air_pollution/history?lat=${NY_LAT}&lon=${NY_LON}&start=${startDate}&end=${endDate}&appid=${ACCESS_KEY}`;
+
+
+function Dashboard({ setTodaysAQI, setAvgAQI, setWorstAQI, setBestAQI }) {
+    const [data, setData] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [minAQI, setMinAQI] = useState(0);
-    const [maxAQI, setMaxAQI] = useState(500);
+    const [minAQI, setMinAQI] = useState(1);
+    const [maxAQI, setMaxAQI] = useState(5);
 
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await fetch(API_ENDPOINT);
+                const result = await response.json();
+                setData(result.list); 
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        };
+        fetchData();
+
+    }, []);
 
     const totalItems = data.length;
-    const averageAQI = data.reduce((acc, item) => acc + (item.aqi || 0), 0) / totalItems;
-    const maxTemperature = Math.max(...data.map(item => item.temperature || 0));
+    const averageAQI = Math.round(data.reduce((acc, item) => acc + (item.main.aqi || 0), 0) / totalItems); // Rounded to the nearest whole number
 
     const filteredData = data.filter(item => 
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        item.aqi >= minAQI && item.aqi <= maxAQI
+        item.components.co.toString().includes(searchTerm) && 
+        item.main.aqi >= minAQI && item.main.aqi <= maxAQI  
     );
 
-    // Sample function to format date from 'YYYY-MM-DDTHH:MM:SS.sssZ' to 'MM-DD-YYYY'
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
+    // Format date to MM-DD-YYYY
+    const formatDate = (timestamp) => {
+        const date = new Date(timestamp * 1000); // Convert UNIX timestamp to JS Date
         return `${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}`;
     };
+
+    const aggregateDataByDate = (data) => {
+        const aggregatedData = {};
+    
+        data.forEach(item => {
+            const date = formatDate(item.dt);
+            if (!aggregatedData[date]) {
+                aggregatedData[date] = {
+                    dt: item.dt,
+                    count: 0,
+                    main: { aqi: 0 },
+                    components: {
+                        co: 0, no: 0, no2: 0, o3: 0, so2: 0, pm2_5: 0, pm10: 0, nh3: 0
+                    }
+                };
+            }
+    
+            aggregatedData[date].count++;
+            aggregatedData[date].main.aqi += item.main.aqi;
+            Object.keys(item.components).forEach(key => {
+                aggregatedData[date].components[key] += item.components[key];
+            });
+        });
+    
+        // Calculate averages and round AQI to the nearest whole number
+        Object.values(aggregatedData).forEach(item => {
+            item.main.aqi = Math.round(item.main.aqi / item.count);
+            Object.keys(item.components).forEach(key => {
+                item.components[key] /= item.count;
+            });
+        });
+    
+        return Object.values(aggregatedData);
+    };
+    
+    const aggregatedData = aggregateDataByDate(data);
+    
+    // Filter out future dates and sort by date
+    const today = new Date();
+    let filteredAndSortedData = aggregatedData
+        .filter(item => new Date(item.dt * 1000) <= today)
+        .sort((a, b) => b.dt - a.dt);
+
+    // Apply filtering based on search term and AQI range
+    const finalFilteredData = filteredAndSortedData.filter(item => 
+        (formatDate(item.dt).toLowerCase().includes(searchTerm.toLowerCase()) || 
+        item.main.aqi.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getAQIStatus(item.main.aqi).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        Object.values(item.components).some(component => component.toString().toLowerCase().includes(searchTerm.toLowerCase())) ||
+        item.components.co.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.components.no.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.components.no2.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.components.o3.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.components.so2.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.components.pm2_5.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.components.pm10.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.components.nh3.toFixed(2).toLowerCase().includes(searchTerm.toLowerCase())) &&
+        item.main.aqi >= minAQI && item.main.aqi <= maxAQI
+    );
+    
+    setTodaysAQI(aggregatedData[0]?.main.aqi || "N/A");
+    setAvgAQI(averageAQI || "N/A");
+    setWorstAQI(Math.max(...aggregatedData.map(item => item.main.aqi)));
+    setBestAQI(Math.min(...aggregatedData.map(item => item.main.aqi)));
+    
 
     return (
         <div className="App-row">
@@ -41,45 +126,63 @@ function Dashboard() {
                         />
                     </div>
                     <div className="aqiFilter">
-                        <label>AQI Range:</label>
-                        <input 
-                            type="range" 
-                            name="minAQI" 
-                            min="0" 
-                            max="500" 
-                            step="10" 
-                            value={minAQI} 
-                            onChange={e => setMinAQI(e.target.value)} 
-                        />
-                        <input 
-                            type="range" 
-                            name="maxAQI" 
-                            min="0" 
-                            max="500" 
-                            step="10" 
-                            value={maxAQI} 
-                            onChange={e => setMaxAQI(e.target.value)} 
-                        />
+                        <label>Min AQI: {minAQI}</label>
+                        <div className="rangeWrapper">
+                            <input 
+                                type="range" 
+                                name="minAQI" 
+                                min="1" 
+                                max="5" 
+                                step="1" 
+                                value={minAQI} 
+                                onChange={e => setMinAQI(e.target.value)} 
+                            />
+                        </div>
+                        <label>Max AQI: {maxAQI}</label>
+                        <div className="rangeWrapper">
+                            <input 
+                                type="range" 
+                                name="maxAQI" 
+                                min="1" 
+                                max="5" 
+                                step="1" 
+                                value={maxAQI} 
+                                onChange={e => setMaxAQI(e.target.value)} 
+                            />
+                        </div>
                     </div>
-                    <button className="btn">Search</button>
                 </div>
                 <div className="table">
                     <table>
                         <thead>
                             <tr>
-                                <th>Date</th>
+                                <th className="date">Date</th>
                                 <th>AQI</th>
-                                <th>Temperature (°C)</th>
-                                <th>Main Pollutant</th>
+                                <th>CO (μg/m3)</th>
+                                <th>NO (μg/m3)</th>
+                                <th>NO2 (μg/m3)</th>
+                                <th>O3 (μg/m3)</th>
+                                <th>SO2 (μg/m3)</th>
+                                <th>PM2.5 (μg/m3)</th>
+                                <th>PM10 (μg/m3)</th>
+                                <th>NH3 (μg/m3)</th>
+                                <th>Status</th> 
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredData.map(item => (
-                                <tr key={item.id}> {/* Assuming each item has a unique 'id' */}
-                                    <td>{formatDate(item.date)}</td>
-                                    <td>{item.aqi}</td>
-                                    <td>{item.temperature}°C</td>
-                                    <td>{item.pollutant}</td>
+                            {finalFilteredData.map(item => (
+                                <tr key={item.dt}>
+                                    <td>{formatDate(item.dt)}</td>
+                                    <td>{item.main.aqi}</td>
+                                    <td>{item.components.co.toFixed(2)}</td>
+                                    <td>{item.components.no.toFixed(2)}</td>
+                                    <td>{item.components.no2.toFixed(2)}</td>
+                                    <td>{item.components.o3.toFixed(2)}</td>
+                                    <td>{item.components.so2.toFixed(2)}</td>
+                                    <td>{item.components.pm2_5.toFixed(2)}</td>
+                                    <td>{item.components.pm10.toFixed(2)}</td>
+                                    <td>{item.components.nh3.toFixed(2)}</td>
+                                    <td>{getAQIStatus(item.main.aqi)}</td>
                                 </tr>
                             ))}
                         </tbody>
