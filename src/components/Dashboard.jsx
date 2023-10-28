@@ -2,6 +2,8 @@ import './Dashboard.css';
 import Cards from './Cards';
 import { useState, useEffect } from 'react';
 import { getAQIStatus } from './utils';
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
+import { Link } from "react-router-dom";
 
 const ACCESS_KEY = import.meta.env.VITE_APP_ACCESS_KEY;
 const NY_LAT = 40.7128;
@@ -107,11 +109,32 @@ function Dashboard({ setTodaysAQI, setAvgAQI, setWorstAQI, setBestAQI }) {
         item.main.aqi >= minAQI && item.main.aqi <= maxAQI
     );
     
-    setTodaysAQI(aggregatedData[0]?.main.aqi || "N/A");
-    setAvgAQI(averageAQI || "N/A");
-    setWorstAQI(Math.max(...aggregatedData.map(item => item.main.aqi)));
-    setBestAQI(Math.min(...aggregatedData.map(item => item.main.aqi)));
+    useEffect(() => {
+        setTodaysAQI(aggregatedData[0]?.main.aqi || "N/A");
+        setAvgAQI(averageAQI || "N/A");
+        setWorstAQI(Math.max(...aggregatedData.map(item => item.main.aqi)));
+        setBestAQI(Math.min(...aggregatedData.map(item => item.main.aqi)));
+    }, [aggregatedData, averageAQI]);
     
+
+    const chartData = aggregatedData
+    .map(item => ({
+        date: formatDate(item.dt),
+        aqi: item.main.aqi
+    }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="custom-tooltip">
+                    <p className="desc">{`AQI: ${payload[0].value}`}</p>
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
         <div className="App-row">
@@ -167,6 +190,7 @@ function Dashboard({ setTodaysAQI, setAvgAQI, setWorstAQI, setBestAQI }) {
                                 <th>PM10 (μg/m3)</th>
                                 <th>NH3 (μg/m3)</th>
                                 <th>Status</th> 
+                                <th>Details</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -183,11 +207,24 @@ function Dashboard({ setTodaysAQI, setAvgAQI, setWorstAQI, setBestAQI }) {
                                     <td>{item.components.pm10.toFixed(2)}</td>
                                     <td>{item.components.nh3.toFixed(2)}</td>
                                     <td>{getAQIStatus(item.main.aqi)}</td>
+                                    <td>
+                                        <Link to={`/${formatDate(item.dt)}`}>
+                                        🔗
+                                        </Link>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+            </div>
+            <div className="Chart">
+                <LineChart width={600} height={300} data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <Line type="monotone" dataKey="aqi" stroke="#8884d8" />
+                    <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
+                    <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} />
+                    <Tooltip content={<CustomTooltip />} />
+                </LineChart>
             </div>
         </div>
     );

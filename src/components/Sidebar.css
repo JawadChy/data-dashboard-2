@@ -5,11 +5,13 @@
     height: 100%;
     left: 0;
     overflow-x: hidden;
-    padding-left: 20px;
     position: fixed;
     top: 0;
-    width: 250px;
     box-shadow: 10px 0 5px rgba(0, 0, 0, 0.1);
+    width: 16%;
+    min-width: 200px;
+    max-width: 250px;
+    padding-left: 0.1%;
 }
 
 .Header {
@@ -20,9 +22,9 @@
 
 .Logo {
     display: flex;
-    height: calc(35px + 6vmin);
-    padding-right: 10px;
-    padding-bottom: 80px;
+    height: calc(50px + 6vmin);
+    padding-right: 3px;
+    padding-bottom: 20px;
 }
 
 .Menu-item {
@@ -33,7 +35,7 @@
     justify-content: flex-start;
     list-style: none;
     margin: 0;
-    padding: 0 0 35px;
+    padding: 0 0 30px;
 }
 
 a {

@@ -2,16 +2,21 @@
     display: flex;
     flex-direction: row;
     gap: 10px 20px;
-    margin-left: 270px; 
+    margin-left:5%;
     margin-top: 20px;
     width: auto; 
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .List {
     border-radius: 24px;
     font-size: medium;
     text-align: center;
-    width: auto; 
+    width: 100%;
+    max-width: 880px;
+    font-size: 0.48em;
+    margin: 0 auto;
     background-color: hsla(0,0%,100%,.1);
     backdrop-filter: blur(2px);
     padding: 20px;
@@ -87,6 +92,7 @@ th {
     border: 1px solid #007BFF;
     outline: none;
     transition: box-shadow 0.3s ease; 
+    font-family: Avenir, "Century Gothic", sans-serif;
 }
 
 .dateFilter input:focus, .aqiFilter input:focus {
@@ -94,5 +100,6 @@ th {
 }
 
 .date {
-    min-width: 6rem;
+    min-width: 4rem;
 }
+

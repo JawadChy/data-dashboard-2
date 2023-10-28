@@ -4,7 +4,8 @@ import './App.css'
 import Sidebar from './components/Sidebar.jsx'
 import Cards from './components/Cards.jsx'
 import Dashboard from './components/Dashboard.jsx'
-
+import { Routes, Route, Outlet } from 'react-router-dom';
+import DateDetail from './routes/DateDetail.jsx';
 
 function App() {
   const [todaysAQI, setTodaysAQI] = useState(null);
@@ -21,12 +22,16 @@ function App() {
         worstAQI={worstAQI}
         bestAQI={bestAQI}
       />
-      <Dashboard 
-        setTodaysAQI={setTodaysAQI}
-        setAvgAQI={setAvgAQI}
-        setWorstAQI={setWorstAQI}
-        setBestAQI={setBestAQI}
-      />
+      <Routes>
+          <Route index element={<Dashboard 
+            setTodaysAQI={setTodaysAQI}
+            setAvgAQI={setAvgAQI}
+            setWorstAQI={setWorstAQI}
+            setBestAQI={setBestAQI}
+          />} />
+          <Route path=":date" element={<DateDetail />} />
+      </Routes>
+      <Outlet />
     </div>
   );
 }
