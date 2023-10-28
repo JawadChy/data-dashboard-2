@@ -44,6 +44,7 @@ function DateDetail() {
         <h3>Date: {date}</h3>
         <h3>Air Quality Index(1-5): {data.main.aqi}</h3>
         <h3>Air Quality Status: {getAQIStatus(data.main.aqi)}</h3>
+        <h3>Main Pollutant: {mainPollutant}</h3> {/* Added this line */}
       </div>
     </div>
   );
