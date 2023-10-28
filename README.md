@@ -28,7 +28,7 @@ The following **additional** features are implemented:
 
 Here's a walkthrough of implemented user stories:
 
-![Video Walkthrough](./assets/project6gif2.gif)
+![Video Walkthrough](./assets/project6gif3.gif)
 
 <!-- Replace this with whatever GIF tool you used! -->
 GIF created with ShareX
